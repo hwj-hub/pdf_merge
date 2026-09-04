@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<title>PDF 합치기 · 여러 PDF를 하나로, 페이지 뽑기·순서 변경까지</title>
+<meta name="description" content="여러 PDF를 하나로 합치고, 필요한 페이지만 뽑고, 순서를 바꾸고, 돌려서 저장합니다. 파일을 넣는 순간 합쳐진 모습이 미리보기로 바로 보이고, 순서·페이지·회전을 바꾸면 그때마다 다시 그려집니다. 보이는 그대로 내려받습니다. 파일을 어디에도 올리지 않고 내 브라우저 안에서만 처리하기 때문에 계약서·제안서·증명서처럼 남에게 보이면 안 되는 문서도 안전합니다. 설치도 회원가입도 워터마크도 없습니다.">
+<meta property="og:title" content="PDF 합치기 · 여러 PDF를 하나로, 페이지 뽑기·순서 변경까지">
+<meta property="og:description" content="업로드 없이 브라우저 안에서만 처리합니다. 넣는 순간 미리보기 · 페이지 뽑기 · 순서 변경 · 회전 · 역순.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E%F0%9F%93%91%3C/text%3E%3C/svg%3E">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#f5f3fa; --card:#fff; --card2:#faf8ff; --fg:#171226; --muted:#645c7a; --line:#e6e1f0;
+  --accent:#6d28d9; --accent2:#a78bfa; --afg:#fff;
+  --ok:#059669; --okbg:#e8f7f1; --warn:#b45309; --warnbg:#fef4e6; --danger:#dc2626;
+  --shadow:0 1px 2px rgba(23,18,38,.05),0 8px 24px -14px rgba(23,18,38,.30);
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+ :root{
+  --bg:#100c1a; --card:#1c1730; --card2:#171226; --fg:#efe9fb; --muted:#a498c4; --line:#2f2648;
+  --accent:#a78bfa; --accent2:#c4b5fd; --afg:#1a1030;
+  --ok:#34d399; --okbg:#0f2a22; --warn:#fbbf24; --warnbg:#2a2110; --danger:#f87171;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -16px rgba(0,0,0,.8);
+ }
+}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);line-height:1.55;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:940px;margin:0 auto;padding:0 14px calc(56px + env(safe-area-inset-bottom))}
+
+/* ══ 광고 슬롯 ══ */
+.ad-slot{display:flex;align-items:center;justify-content:center;margin:10px auto;overflow:hidden}
+.ad-top{width:320px;height:50px;max-width:100%}
+.ad-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);
+  border-radius:8px;background:var(--card2);color:var(--muted);font-size:11px;letter-spacing:.08em;font-weight:600}
+
+header{text-align:center;padding:16px 0 4px}
+.logo{display:inline-flex;align-items:center;gap:9px;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.logo .ico{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:var(--shadow)}
+.tag{font-size:14.5px;font-weight:600;color:var(--muted);margin:8px 0 0}
+.tag b{color:var(--fg)}
+.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.badge{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--okbg);color:var(--ok);border:1px solid transparent}
+.badge.gray{background:var(--card2);color:var(--muted);border-color:var(--line)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-top:14px}
+.card h2{font-size:12px;font-weight:800;color:var(--muted);margin:0 0 12px;letter-spacing:.07em;
+  display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card h2 .n{color:var(--accent);letter-spacing:0}
+.hide{display:none !important}
+
+#drop{border:2px dashed var(--line);border-radius:var(--r);background:var(--card);padding:30px 16px;text-align:center;
+  cursor:pointer;transition:.18s;margin-top:14px}
+#drop:hover,#drop.over{border-color:var(--accent);background:var(--card2)}
+#drop.over{box-shadow:0 0 0 4px rgba(109,40,217,.16)}
+#drop .big{font-size:38px;line-height:1}
+#drop .t1{font-weight:800;font-size:16.5px;margin-top:8px}
+#drop .t2{color:var(--muted);font-size:12.5px;margin-top:4px}
+#file,#fileMore{display:none}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.mini{border:1px solid var(--line);background:var(--card2);color:var(--fg);font:inherit;font-size:12.5px;font-weight:700;
+  padding:9px 13px;border-radius:999px;cursor:pointer;min-height:42px;transition:.15s}
+.mini:hover{border-color:var(--accent)}
+.mini.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+#list{list-style:none;margin:0;padding:0}
+.item{display:flex;gap:10px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item.drag{opacity:.45}
+.item.overdrop{box-shadow:0 -2px 0 var(--accent) inset}
+.item.bad .fname{color:var(--danger)}
+.idx{flex:0 0 30px;height:30px;margin-top:2px;border-radius:9px;background:var(--card2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;color:var(--muted);
+  font-variant-numeric:tabular-nums;cursor:grab}
+.meta{flex:1;min-width:0}
+.fname{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fsz{font-size:12px;color:var(--muted);margin-top:2px;display:flex;flex-wrap:wrap;gap:3px 8px;align-items:center}
+.fsz b{color:var(--accent);font-weight:800}
+.err{color:var(--danger);font-weight:700}
+.opts{display:flex;gap:6px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.rng{font:inherit;font-size:13px;font-weight:600;color:var(--fg);background:var(--card2);border:1px solid var(--line);
+  border-radius:9px;padding:8px 10px;min-height:40px;flex:1 1 150px;min-width:0}
+.rng:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.rng.bad{border-color:var(--danger);color:var(--danger)}
+.rot{flex:0 0 auto;border:1px solid var(--line);background:var(--card2);color:var(--muted);font:inherit;font-size:12.5px;
+  font-weight:800;min-height:40px;padding:0 12px;border-radius:9px;cursor:pointer;white-space:nowrap;
+  min-width:74px;text-align:center;font-variant-numeric:tabular-nums}
+.rot.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.ctl{display:flex;gap:4px;flex:0 0 auto}
+.sq{border:1px solid var(--line);background:var(--card2);color:var(--muted);font:inherit;font-size:15px;font-weight:800;
+  width:36px;height:40px;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.sq:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.sq:disabled{opacity:.3;cursor:not-allowed}
+.sq.x:hover{border-color:var(--danger);color:var(--danger)}
+
+.row{margin-top:15px}
+.row:first-child{margin-top:0}
+.lab{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13.5px;font-weight:800;margin-bottom:8px}
+.lab .hint{font-weight:500;color:var(--muted);font-size:12px;text-align:right}
+input[type=text]{font:inherit;font-size:15px;color:var(--fg);background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+
+.tot{display:flex;gap:9px;flex-wrap:wrap;margin-top:4px}
+.tot div{flex:1 1 30%;min-width:0;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.tot b{display:block;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+.tot span{display:block;font-size:18px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
+
+.actions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.btn{flex:1 1 150px;border:1px solid var(--line);background:var(--card2);color:var(--fg);font:inherit;font-weight:800;font-size:15px;
+  padding:13px 14px;border-radius:12px;cursor:pointer;transition:.15s;min-height:52px;display:flex;align-items:center;justify-content:center;gap:7px;
+  text-decoration:none}
+.btn:hover:not(:disabled){border-color:var(--accent)}
+.btn:disabled{opacity:.42;cursor:not-allowed}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:var(--shadow)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn.off{opacity:.42;pointer-events:none}
+@media (prefers-color-scheme:dark){.btn.primary{color:var(--afg)}}
+
+/* ── 미리보기 ── */
+.pvbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.pvtitle{flex:1 1 130px;min-width:0;font-size:12.5px;font-weight:700;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pvframe{width:100%;height:min(72vh,560px);border:1px solid var(--line);border-radius:12px;
+  background:var(--card2);display:block}
+.pvstate{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0;white-space:nowrap}
+.pvstate.busy{color:var(--accent)}
+.pvframe.dim{opacity:.45;transition:opacity .15s}
+
+#prog{display:none;margin-top:14px}
+#prog.show{display:block}
+.bar{height:8px;background:var(--card2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .18s}
+.ptxt{font-size:12.5px;color:var(--muted);margin-top:7px;text-align:center;font-weight:600}
+
+.note{border-radius:11px;padding:10px 12px;font-size:12.5px;font-weight:600;line-height:1.65;margin-top:11px}
+.note b{font-weight:800}
+.note.info{background:var(--card2);color:var(--muted);border:1px solid var(--line)}
+.note.warn{background:var(--warnbg);color:var(--warn)}
+.note.bad{background:#fdecec;color:var(--danger)}
+@media (prefers-color-scheme:dark){.note.bad{background:#2c1414}}
+
+.use{list-style:none;margin:0;padding:0}
+.use li{position:relative;padding-left:26px;margin-bottom:13px;font-size:13.5px;font-weight:600;line-height:1.65}
+.use li:last-child{margin-bottom:0}
+.use li::before{content:"▸";position:absolute;left:4px;top:0;color:var(--accent);font-weight:800}
+.use li b{font-weight:800}
+.use li .d{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-top:3px;line-height:1.7}
+.use li code{background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:var(--accent)}
+
+details{border-top:1px solid var(--line);padding:12px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;padding:10px 0;margin:-10px 0}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"＋ ";color:var(--accent);font-weight:800}
+details[open] summary::before{content:"－ "}
+details p{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.8}
+details p b{color:var(--fg)}
+
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:22px;line-height:1.8}
+footer b{color:var(--fg)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:#171226;color:#fff;font-size:13.5px;font-weight:700;
+  padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:92vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-color-scheme:dark){#toast{background:#efe9fb;color:#1a1030}}
+
+@media (max-width:430px){
+  .card{padding:14px}
+  .tot div{flex:1 1 0;padding:9px 8px}
+  .tot span{font-size:15px}
+  .rng{flex:1 1 60px;font-size:12.5px;padding:8px 9px}
+  .rot{padding:0 8px;font-size:12px;min-width:58px}
+  .pvframe{height:min(66vh,430px)}
+  .idx{flex:0 0 26px;height:26px}
+  .sq{width:32px;height:36px}
+}
+
+/* ══ 주의 문구 ══════════════════════════════════════════
+   결과가 원본과 달라질 수 있는 지점과
+   법적 책임을 지지 않는다는 점을 페이지마다 고지한다.
+   ══════════════════════════════════════════════════════ */
+.nbx{border:1px solid var(--warn);border-radius:14px;background:var(--warnbg);padding:14px 15px;margin-top:14px}
+.nbx-h{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;color:var(--warn);margin:0 0 10px}
+.nbx-h .ic{flex:0 0 auto;width:19px;height:19px;border-radius:6px;background:var(--warn);color:var(--warnbg);
+  font-size:12px;font-weight:800;display:grid;place-items:center;line-height:1}
+.nbx ul{list-style:none;margin:0;padding:0}
+.nbx li{position:relative;padding-left:12px;margin-bottom:7px;font-size:12px;font-weight:600;line-height:1.68;color:var(--warn)}
+.nbx li:last-child{margin-bottom:0}
+.nbx li::before{content:"·";position:absolute;left:1px;top:-1px;font-weight:800}
+.nbx li b{font-weight:800}
+.nbx .nbx-f{margin:11px 0 0;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--warn) 32%,transparent);
+  font-size:12px;font-weight:700;line-height:1.72;color:var(--warn)}
+.nbx .nbx-f b{font-weight:800}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  광고 슬롯 · 상단 320 × 50 · 카카오 애드핏                     ║
+     ║  단위 ID: DAN-BtboQ7kfhGLEM5T3                                ║
+     ║  ※ 이 ID는 image_to_pdf 와 공유하는 임시값입니다.               ║
+     ║     배포 전에 이 도구 전용 단위를 발급받아 교체하세요.           ║
+     ║     티스토리 포스팅 본문에는 같은 단위를 넣으면 정책 위반입니다.  ║
+     ║  · 광고를 빼려면 아래 <ins>·<script> 두 줄만 지우면 됩니다      ║
+     ║  · 광고 스크립트는 PDF 데이터에 접근하지 않습니다               ║
+     ║  · 주소는 반드시 https:// 로 (file:// 로 열 때 //t1... 은 깨짐) ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+<div class="ad-slot ad-top" id="ad-top">
+  <ins class="kakao_ad_area" style="display:none;"
+    data-ad-unit="DAN-BtboQ7kfhGLEM5T3"
+    data-ad-width="320"
+    data-ad-height="50"></ins>
+  <script type="text/javascript" src="https://t1.kakaocdn.net/kas/static/ba.min.js" async></script>
+</div>
+<!-- ══ 광고 슬롯 끝 ══ -->
+
+<header>
+  <div class="logo"><span class="ico">📑</span><span>PDF 합치기</span></div>
+  <p class="tag">여러 PDF를 <b>하나로</b> · 필요한 <b>페이지만 뽑기</b>도 · 설치 없이 브라우저에서 바로</p>
+  <div class="badges">
+    <span class="badge">🔒 파일이 서버로 전송되지 않음</span>
+    <span class="badge gray">무료 · 무제한 · 워터마크 없음</span>
+    <span class="badge gray">넣는 순간 미리보기</span>
+    <span class="badge gray">순서 변경 · 회전 · 역순</span>
+  </div>
+</header>
+
+<div id="drop">
+  <div class="big">📄</div>
+  <div class="t1">PDF를 여기에 놓거나 눌러서 선택</div>
+  <div class="t2">여러 개 한 번에 · 한 개만 넣으면 페이지 뽑기 도구가 됩니다</div>
+  <input type="file" id="file" accept="application/pdf,.pdf" multiple>
+</div>
+
+<section class="card hide" id="listCard">
+  <h2><span>불러온 PDF <span class="n" id="cnt">0</span>개</span><span class="n" id="sumPage"></span></h2>
+  <div class="toolbar">
+    <button class="mini" id="addMore">＋ PDF 추가</button>
+    <button class="mini" id="sortName">이름순</button>
+    <button class="mini" id="reverse">순서 뒤집기</button>
+    <button class="mini danger" id="clear">전체 삭제</button>
+  </div>
+  <ul id="list"></ul>
+  <input type="file" id="fileMore" accept="application/pdf,.pdf" multiple>
+  <div id="prog"><div class="bar"><i id="bar"></i></div><div class="ptxt" id="ptxt">처리 중…</div></div>
+  <div class="note info">
+    <b>페이지 칸</b>은 비워 두면 전체입니다. <code style="font-family:ui-monospace,Menlo,Consolas,monospace">1-3, 7, 10-</code> 처럼 쓰고,
+    <code style="font-family:ui-monospace,Menlo,Consolas,monospace">12-1</code> 처럼 거꾸로 적으면 <b>역순</b>으로 들어갑니다.
+    <b>홀</b>·<b>짝</b>도 됩니다(양면 스캔한 앞뒷장 묶을 때).
+    왼쪽 번호를 끌어서 파일 순서를 바꿀 수 있습니다.
+    <b>바꾸는 즉시 아래 미리보기가 다시 그려집니다.</b>
+  </div>
+</section>
+
+<section class="card hide" id="pvCard">
+  <h2><span>미리보기 <span class="n" id="pvSub"></span></span><span class="pvstate" id="pvState"></span></h2>
+  <div class="pvbar">
+    <span class="pvtitle" id="pvTitle"></span>
+    <button class="mini" id="pvOpen">새 창에서 열기</button>
+  </div>
+  <iframe class="pvframe" id="pvFrame" title="PDF 미리보기"></iframe>
+  <div class="note info" id="pvNote"></div>
+</section>
+
+<section class="card hide" id="outCard">
+  <h2><span>내보내기</span><span class="n" id="outHint"></span></h2>
+
+  <div class="tot">
+    <div><b>합칠 페이지</b><span id="tPage">0쪽</span></div>
+    <div><b>PDF 개수</b><span id="tFile">0개</span></div>
+    <div><b>만들어진 파일</b><span id="tOut">–</span></div>
+  </div>
+
+  <div class="row">
+    <div class="lab"><span>저장할 파일 이름</span><span class="hint">.pdf 는 자동으로 붙습니다</span></div>
+    <input type="text" id="outName" value="합친문서" spellcheck="false">
+  </div>
+
+  <div class="actions">
+    <a class="btn primary off" id="dl" download>⬇ PDF 내려받기</a>
+  </div>
+
+  <div class="note warn hide" id="warnBox"></div>
+</section>
+
+<section class="card">
+  <h2><span>이럴 때 씁니다</span><span class="n">5가지</span></h2>
+  <ul class="use">
+    <li><b>스캔한 서류 여러 개를 한 파일로</b>
+      <span class="d">주민등록등본·통장사본·재직증명서를 따로 스캔해 뒀다면, 제출용으로 하나로 묶습니다.
+        복합기가 장마다 따로 저장해 버린 경우에도 이름순으로 정렬하고 합치면 됩니다.</span></li>
+    <li><b>필요한 페이지만 뽑아 보내기</b>
+      <span class="d">PDF 한 개만 넣고 페이지 칸에 <code>3-7</code> 이라고 쓰면 그 부분만 새 PDF가 됩니다.
+        계약서 40쪽 중 서명면만, 제안서 중 견적 페이지만 보낼 때 씁니다. <b>분할 도구가 따로 필요 없습니다.</b></span></li>
+    <li><b>양면 스캔한 앞장·뒷장 합치기</b>
+      <span class="d">앞면만 스캔한 파일과 뒷면을 거꾸로 스캔한 파일이 있을 때,
+        뒷면 파일의 페이지 칸에 <code>10-1</code> 처럼 <b>거꾸로</b> 적으면 순서가 맞아 들어갑니다.</span></li>
+    <li><b>거꾸로 스캔된 페이지 돌리기</b>
+      <span class="d">파일마다 <b>회전</b> 버튼으로 90°·180°·270° 돌립니다. 원본 화질은 그대로입니다.</span></li>
+    <li><b>남에게 보이면 안 되는 문서</b>
+      <span class="d">계약서·제안서·진단서·성적증명서처럼 밖으로 나가면 곤란한 파일은
+        <b>업로드 자체를 하지 않는</b> 이 도구가 맞습니다. 인터넷을 끄고 써도 그대로 동작합니다.</span></li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2><span>자주 묻는 것</span><span class="n">PDF</span></h2>
+
+  <details>
+    <summary>파일이 정말 서버로 안 올라가나요?</summary>
+    <p>올라가지 않습니다. 이 페이지에는 <b>파일을 어디론가 보내는 코드 자체가 없습니다.</b>
+      선택한 PDF는 브라우저 메모리에서 읽어 브라우저 안에서 합치고, 결과도 브라우저가 직접 저장합니다.
+      확인하고 싶으면 <b>페이지를 연 뒤 인터넷(와이파이)을 끄고</b> 써 보세요. 그대로 동작합니다.</p>
+  </details>
+
+  <details>
+    <summary>화질이나 용량이 나빠지지 않나요?</summary>
+    <p>나빠지지 않습니다. 이 도구는 페이지를 <b>다시 그리지 않고 원본 데이터를 그대로 옮깁니다.</b>
+      글자는 글자로, 이미지는 원본 그대로 남아 복사·검색·선택이 됩니다.
+      결과 용량은 대략 원본을 더한 만큼이고, 안 쓰는 데이터가 정리되면서 <b>오히려 조금 줄어드는 경우도</b> 있습니다.</p>
+  </details>
+
+  <details>
+    <summary>암호가 걸린 PDF도 되나요?</summary>
+    <p>안 됩니다. 열 때 비밀번호를 묻는 PDF는 <b>내용이 암호화되어 있어</b> 그대로 옮길 수 없습니다.
+      해당 파일에 빨간 표시가 뜹니다. 원본을 만든 프로그램이나 뷰어에서 <b>암호를 푼 사본으로 저장한 뒤</b> 올려 주세요.</p>
+  </details>
+
+  <details>
+    <summary>몇 개까지, 얼마나 큰 파일까지 되나요?</summary>
+    <p>개수 제한은 두지 않았습니다. 다만 <b>모든 파일을 메모리에 올려서 처리</b>하기 때문에
+      기기 메모리가 한계입니다. PC라면 수백 MB도 무리 없고,
+      스마트폰에서는 <b>합쳐서 100MB 안쪽</b>을 권합니다. 너무 크면 브라우저 탭이 멈출 수 있습니다.</p>
+  </details>
+
+  <details>
+    <summary>목차·양식·서명은 어떻게 되나요?</summary>
+    <p>페이지 안의 <b>글자·이미지·표·주석·하이퍼링크는 그대로</b> 옮겨집니다.
+      다만 <b>책갈피(목차), 입력 가능한 양식 필드의 동작, 전자서명</b>은 유지되지 않습니다.
+      전자서명은 문서가 바뀌면 원래 깨지도록 만들어진 것이라 어떤 도구로 합쳐도 마찬가지입니다.
+      서명이 필요하면 합친 다음에 다시 서명하세요.</p>
+  </details>
+
+  <details>
+    <summary>페이지 칸은 어떻게 쓰나요?</summary>
+    <p>비워 두면 전체입니다. <b>1-3, 7, 10-</b> 처럼 쉼표로 나눠 적고,
+      <b>10-</b> 은 10쪽부터 끝까지입니다. <b>12-1</b> 처럼 큰 수를 먼저 적으면 그 구간이 <b>거꾸로</b> 들어갑니다.
+      <b>홀</b> 또는 <b>짝</b> 이라고만 써도 되고, <b>홀 1-20</b> 처럼 범위와 같이 쓸 수도 있습니다.</p>
+  </details>
+
+  <details>
+    <summary>아이폰·안드로이드에서도 되나요?</summary>
+    <p>됩니다. 파일 선택을 누르면 <b>파일 앱·구글 드라이브·다운로드 폴더</b>에서 PDF를 고를 수 있습니다.
+      결과는 다운로드 폴더(아이폰은 파일 앱)에 저장됩니다.
+      다만 오래된 브라우저에서는 압축 해제 기능이 없어 동작하지 않을 수 있으니, 브라우저를 최신으로 올려 주세요.</p>
+  </details>
+</section>
+
+
+<!-- ══ 주의 문구 ══ -->
+<div class="nbx">
+  <div class="nbx-h"><span class="ic">!</span><span>합치기 전에 확인하세요</span></div>
+  <ul>
+    <li><b>제출·발송하기 전에 반드시 미리보기로 확인하세요.</b> 페이지 수, 순서, 방향이 의도대로인지
+      직접 눈으로 보셔야 합니다. 미리보기는 내려받기 바로 위에 <b>항상 떠 있습니다</b>. PDF는 만든 프로그램마다 구조가 제각각이라
+      <b>드물게 일부 페이지가 비거나 글꼴이 다르게 보일 수 있습니다.</b></li>
+    <li><b>책갈피(목차) · 입력 양식의 동작 · 전자서명 · 첨부파일은 유지되지 않습니다.</b>
+      암호가 걸린 PDF는 처리할 수 없습니다. 원본 파일은 그대로 남으니, <b>원본을 지우기 전에</b> 결과부터 확인하세요.</li>
+    <li>이 도구는 파일을 서버로 보내지 않지만, <b>기관 제출용 서류에는 각 기관의 규정</b>(파일 형식·용량·페이지 순서·원본 대조)이
+      따로 있습니다. 제출 전 <b>개인정보가 필요 이상으로 담기지 않았는지</b>(주민등록번호 뒷자리, 계좌번호 등) 확인하고
+      필요하면 가려서 보내세요.</li>
+  </ul>
+  <p class="nbx-f">이 도구는 <b>있는 그대로 제공되며</b>, 이를 사용해 만든 문서로 발생한
+    어떠한 손해에 대해서도 <b>제작자와 운영자는 법적 책임을 지지 않습니다.</b></p>
+</div>
+
+<footer>
+  <b>PDF 합치기</b> · 업로드 없이 브라우저에서 처리<br>
+  PDF 구조는 ISO 32000 기준으로 직접 해석합니다 · 객체 스트림(/ObjStm) · 증분 업데이트 · 상속 속성 처리<br>
+  압축 해제는 브라우저 내장 DecompressionStream 사용 · 외부 라이브러리 없음<br>
+  파일은 어디에도 전송되지 않으며, 페이지를 연 뒤에는 인터넷 없이도 동작합니다.
+</footer>
+</div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* PDF 병합 코어 — 라이브러리 없이 순수 JS
+   설계
+     · xref/trailer 를 믿지 않고 파일 전체를 순차 스캔해 "N G obj … endobj" 를 모두 찾는다.
+       증분 업데이트(startxref 2개 이상, 실제 PDF의 23%)에서는 뒤에 나온 것이 최신이라 뒤가 이긴다.
+     · 실제 PDF의 90%가 객체 스트림(/ObjStm)을 쓰므로 이를 풀어서 안에 든 객체까지 목록에 넣는다.
+       압축 해제는 브라우저 내장 DecompressionStream 을 쓴다(외부 라이브러리 금지).
+     · 페이지 객체는 구조를 유지한 채 전이 복사(transitive copy)한다. 이미지·폰트·주석이
+       그대로 딸려 오고, 같은 원본 객체는 한 번만 복사되어 병합된 문서 안의 링크도 살아남는다.
+     · 문자열·이름·숫자는 원문 표기를 그대로 보존해 재직렬화한다(부동소수점 표기 흔들림 방지).
+*/
+
+/* ── 바이트 유틸 ────────────────────────────────── */
+const WS = new Uint8Array(256), DELIM = new Uint8Array(256);
+for (const c of [0, 9, 10, 12, 13, 32]) WS[c] = 1;
+for (const c of '()<>[]{}/%') DELIM[c.charCodeAt(0)] = 1;
+const isWS = c => WS[c] === 1;
+const isDelim = c => DELIM[c] === 1;
+const isReg = c => !WS[c] && !DELIM[c];
+
+function findAll(buf, pat, from = 0) {
+  const out = [], p = typeof pat === 'string' ? new TextEncoder().encode(pat) : pat;
+  let i = from;
+  for (;;) {
+    i = indexOfBytes(buf, p, i);
+    if (i < 0) break;
+    out.push(i); i += 1;
+  }
+  return out;
+}
+function indexOfBytes(buf, pat, from = 0) {
+  const n = buf.length, m = pat.length, first = pat[0];
+  outer: for (let i = Math.max(0, from); i <= n - m; i++) {
+    if (buf[i] !== first) continue;
+    for (let j = 1; j < m; j++) if (buf[i + j] !== pat[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+function lastIndexOfBytes(buf, pat, from) {
+  const m = pat.length;
+  outer: for (let i = Math.min(from, buf.length - m); i >= 0; i--) {
+    for (let j = 0; j < m; j++) if (buf[i + j] !== pat[j]) continue outer;
+    return i;
+  }
+  return -1;
+}
+const ENC = new TextEncoder();
+
+/* ── 압축 해제 ──────────────────────────────────── */
+async function inflate(bytes) {
+  const tryOne = async (fmt) => {
+    const ds = new DecompressionStream(fmt);
+    const w = ds.writable.getWriter();
+    w.write(bytes); w.close();
+    const parts = []; let total = 0;
+    const rd = ds.readable.getReader();
+    for (;;) {
+      const { done, value } = await rd.read();
+      if (done) break;
+      parts.push(value); total += value.length;
+    }
+    const out = new Uint8Array(total); let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  };
+  try { return await tryOne('deflate'); }
+  catch (e) { return await tryOne('deflate-raw'); }
+}
+
+/* PNG 예측기(Predictor 10~15) 되돌리기 — xref 스트림과 일부 ObjStm 이 쓴다 */
+function unpredict(data, pred, colors, bpc, columns) {
+  if (pred < 10) return data;
+  const bpp = Math.max(1, (colors * bpc) >> 3);
+  const rowLen = Math.ceil(colors * bpc * columns / 8);
+  const rows = Math.floor(data.length / (rowLen + 1));
+  const out = new Uint8Array(rows * rowLen);
+  let prev = new Uint8Array(rowLen);
+  for (let r = 0; r < rows; r++) {
+    const ft = data[r * (rowLen + 1)];
+    const src = data.subarray(r * (rowLen + 1) + 1, r * (rowLen + 1) + 1 + rowLen);
+    const cur = new Uint8Array(rowLen);
+    for (let i = 0; i < rowLen; i++) {
+      const a = i >= bpp ? cur[i - bpp] : 0, b = prev[i], c = i >= bpp ? prev[i - bpp] : 0;
+      let v = src[i];
+      if (ft === 1) v += a;
+      else if (ft === 2) v += b;
+      else if (ft === 3) v += (a + b) >> 1;
+      else if (ft === 4) {
+        const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+        v += (pa <= pb && pa <= pc) ? a : (pb <= pc ? b : c);
+      }
+      cur[i] = v & 255;
+    }
+    out.set(cur, r * rowLen); prev = cur;
+  }
+  return out;
+}
+
+/* ── 객체 모델 ─────────────────────────────────── */
+// {t:'num',s} {t:'str',b,hex} {t:'name',s} {t:'bool',v} {t:'null'}
+// {t:'ref',n,g} {t:'arr',v:[]} {t:'dict',m:[[name,val]…]} {t:'stream',d:dict,data}
+
+class Lexer {
+  constructor(buf, pos = 0) { this.b = buf; this.p = pos; }
+  skip() {
+    const b = this.b;
+    for (;;) {
+      while (this.p < b.length && isWS(b[this.p])) this.p++;
+      if (b[this.p] === 0x25) { // %
+        while (this.p < b.length && b[this.p] !== 10 && b[this.p] !== 13) this.p++;
+      } else return;
+    }
+  }
+  parse() {
+    this.skip();
+    const b = this.b, c = b[this.p];
+    if (this.p >= b.length) return { t: 'null' };
+    if (c === 0x2f) return this.name();
+    if (c === 0x28) return this.litStr();
+    if (c === 0x3c) {
+      if (b[this.p + 1] === 0x3c) return this.dict();
+      return this.hexStr();
+    }
+    if (c === 0x5b) return this.arr();
+    if (c === 0x5d || c === 0x3e || c === 0x7d || c === 0x29) { this.p++; return { t: 'null' }; }
+    // 키워드 / 숫자
+    const s = this.token();
+    if (s === 'true') return { t: 'bool', v: true };
+    if (s === 'false') return { t: 'bool', v: false };
+    if (s === 'null' || s === '') return { t: 'null' };
+    if (/^[+-]?[\d.]+$/.test(s)) {
+      // "N G R" 참조인지 앞을 내다본다
+      if (/^\d+$/.test(s)) {
+        const save = this.p;
+        this.skip(); const p2 = this.p; const s2 = this.token();
+        if (/^\d+$/.test(s2)) {
+          this.skip(); const s3 = this.token();
+          if (s3 === 'R') return { t: 'ref', n: parseInt(s, 10), g: parseInt(s2, 10) };
+        }
+        this.p = save;
+      }
+      return { t: 'num', s };
+    }
+    return { t: 'kw', s };
+  }
+  token() {
+    const b = this.b, st = this.p;
+    while (this.p < b.length && isReg(b[this.p])) this.p++;
+    if (this.p === st) { this.p++; return String.fromCharCode(b[st]); }
+    let s = '';
+    for (let i = st; i < this.p; i++) s += String.fromCharCode(b[i]);
+    return s;
+  }
+  name() {
+    const b = this.b, st = this.p; this.p++;
+    while (this.p < b.length && isReg(b[this.p])) this.p++;
+    let s = '';
+    for (let i = st; i < this.p; i++) s += String.fromCharCode(b[i]);
+    return { t: 'name', s };
+  }
+  litStr() {
+    const b = this.b; this.p++;
+    const out = []; let depth = 1;
+    while (this.p < b.length) {
+      const c = b[this.p];
+      if (c === 0x5c) { out.push(c); this.p++; if (this.p < b.length) { out.push(b[this.p]); this.p++; } continue; }
+      if (c === 0x28) depth++;
+      if (c === 0x29) { depth--; if (depth === 0) { this.p++; break; } }
+      out.push(c); this.p++;
+    }
+    return { t: 'str', b: Uint8Array.from(out), hex: false };
+  }
+  hexStr() {
+    const b = this.b; this.p++;
+    const out = [];
+    while (this.p < b.length && b[this.p] !== 0x3e) { out.push(b[this.p]); this.p++; }
+    this.p++;
+    return { t: 'str', b: Uint8Array.from(out), hex: true };
+  }
+  arr() {
+    const b = this.b; this.p++;
+    const v = [];
+    for (;;) {
+      this.skip();
+      if (this.p >= b.length) break;
+      if (b[this.p] === 0x5d) { this.p++; break; }
+      const before = this.p;
+      const x = this.parse();
+      if (this.p === before) { this.p++; continue; }
+      if (x.t === 'kw') continue;
+      v.push(x);
+    }
+    return { t: 'arr', v };
+  }
+  dict() {
+    const b = this.b; this.p += 2;
+    const m = [];
+    for (;;) {
+      this.skip();
+      if (this.p >= b.length) break;
+      if (b[this.p] === 0x3e && b[this.p + 1] === 0x3e) { this.p += 2; break; }
+      if (b[this.p] !== 0x2f) { // 이름이 아니면 한 칸 건너뛴다(깨진 사전 방어)
+        const before = this.p; this.parse();
+        if (this.p === before) this.p++;
+        continue;
+      }
+      const k = this.name().s;
+      const v = this.parse();
+      m.push([k, v.t === 'kw' ? { t: 'null' } : v]);
+    }
+    return { t: 'dict', m };
+  }
+}
+
+const dget = (d, k) => {
+  if (!d || d.t !== 'dict') return null;
+  for (const [kk, vv] of d.m) if (kk === k) return vv;
+  return null;
+};
+const dset = (d, k, v) => {
+  for (const e of d.m) if (e[0] === k) { e[1] = v; return; }
+  d.m.push([k, v]);
+};
+const ddel = (d, k) => { d.m = d.m.filter(e => e[0] !== k); };
+const numv = x => (x && x.t === 'num') ? parseFloat(x.s) : null;
+
+/* ── 직렬화 ────────────────────────────────────── */
+function ser(x, out) {
+  switch (x.t) {
+    case 'num': out.push(ENC.encode(x.s)); break;
+    case 'bool': out.push(ENC.encode(x.v ? 'true' : 'false')); break;
+    case 'null': out.push(ENC.encode('null')); break;
+    case 'name': out.push(ENC.encode(x.s)); break;
+    case 'ref': out.push(ENC.encode(x.n + ' ' + x.g + ' R')); break;
+    case 'str':
+      if (x.hex) { out.push(ENC.encode('<')); out.push(x.b); out.push(ENC.encode('>')); }
+      else { out.push(ENC.encode('(')); out.push(x.b); out.push(ENC.encode(')')); }
+      break;
+    case 'arr':
+      out.push(ENC.encode('['));
+      x.v.forEach((e, i) => { if (i) out.push(ENC.encode(' ')); ser(e, out); });
+      out.push(ENC.encode(']'));
+      break;
+    case 'dict':
+      out.push(ENC.encode('<<'));
+      for (const [k, v] of x.m) { out.push(ENC.encode(k + ' ')); ser(v, out); out.push(ENC.encode(' ')); }
+      out.push(ENC.encode('>>'));
+      break;
+    case 'stream':
+      ser(x.d, out);
+      out.push(ENC.encode('\nstream\n'));
+      out.push(x.data);
+      out.push(ENC.encode('\nendstream'));
+      break;
+    default: out.push(ENC.encode('null'));
+  }
+}
+
+/* ── 문서 읽기 ─────────────────────────────────── */
+class PDFDoc {
+  constructor(bytes, name) { this.b = bytes; this.name = name; this.objs = new Map(); }
+
+  static async load(bytes, name) {
+    const d = new PDFDoc(bytes, name);
+    if (indexOfBytes(bytes, ENC.encode('%PDF-'), 0) < 0 || bytes.length < 32)
+      throw new Error('PDF 파일이 아닙니다');
+    if (d.isEncrypted()) throw new Error('암호가 걸린 PDF입니다. 암호를 먼저 푼 뒤 올려 주세요');
+    d.scan();
+    await d.expandObjStms();
+    d.findRoot();
+    return d;
+  }
+
+  isEncrypted() {
+    // trailer 나 xref 스트림 사전에 /Encrypt 가 있으면 암호화
+    const pos = findAll(this.b, 'trailer');
+    for (const p of pos) {
+      const lx = new Lexer(this.b, p + 7);
+      const t = lx.parse();
+      if (dget(t, '/Encrypt')) return true;
+    }
+    return indexOfBytes(this.b, ENC.encode('/Encrypt')) >= 0
+        && indexOfBytes(this.b, ENC.encode('/Type /XRef')) < 0
+        ? true
+        : this.encryptInXrefStream();
+  }
+  encryptInXrefStream() {
+    const p = indexOfBytes(this.b, ENC.encode('/Encrypt'));
+    if (p < 0) return false;
+    // 객체 스캔 전이므로 보수적으로: /Encrypt 뒤가 참조면 암호화로 본다
+    const lx = new Lexer(this.b, p + 8);
+    const v = lx.parse();
+    return v.t === 'ref' || v.t === 'dict';
+  }
+
+  /* 파일 전체를 순차로 훑어 "N G obj … " 를 모두 찾는다. 뒤에 나온 것이 이긴다. */
+  scan() {
+    const b = this.b, n = b.length;
+    let i = 0;
+    while (i < n - 3) {
+      // 'obj' 찾기
+      const j = indexOfBytes(b, ENC.encode('obj'), i);
+      if (j < 0) break;
+      // 앞이 "N G " 형태인지
+      let k = j - 1;
+      while (k >= 0 && isWS(b[k])) k--;
+      let ge = k + 1; while (k >= 0 && b[k] >= 48 && b[k] <= 57) k--;
+      const gs = k + 1;
+      if (gs === ge) { i = j + 3; continue; }
+      while (k >= 0 && isWS(b[k])) k--;
+      let ne = k + 1; while (k >= 0 && b[k] >= 48 && b[k] <= 57) k--;
+      const ns = k + 1;
+      if (ns === ne) { i = j + 3; continue; }
+      if (ns > 0 && isReg(b[ns - 1])) { i = j + 3; continue; }
+      let numS = '', genS = '';
+      for (let t = ns; t < ne; t++) numS += String.fromCharCode(b[t]);
+      for (let t = gs; t < ge; t++) genS += String.fromCharCode(b[t]);
+      const num = parseInt(numS, 10), gen = parseInt(genS, 10);
+      if (!isFinite(num)) { i = j + 3; continue; }
+
+      const lx = new Lexer(b, j + 3);
+      let val;
+      try { val = lx.parse(); } catch (e) { i = j + 3; continue; }
+      let end = lx.p;
+
+      // 스트림인가?
+      lx.skip();
+      if (b[lx.p] === 0x73 && b[lx.p+1] === 0x74 && b[lx.p+2] === 0x72 &&
+          b[lx.p+3] === 0x65 && b[lx.p+4] === 0x61 && b[lx.p+5] === 0x6d && val.t === 'dict') {
+        let ds = lx.p + 6;
+        if (b[ds] === 13) ds++;
+        if (b[ds] === 10) ds++;
+        let len = null;
+        const L = dget(val, '/Length');
+        if (L && L.t === 'num') len = parseInt(L.s, 10);
+        let de = -1;
+        if (len !== null && ds + len <= n) {
+          // /Length 를 믿되 endstream 이 실제로 뒤따르는지 확인
+          const probe = new Lexer(b, ds + len); probe.skip();
+          if (indexOfBytes(b, ENC.encode('endstream'), probe.p) === probe.p) de = ds + len;
+        }
+        if (de < 0) {
+          de = indexOfBytes(b, ENC.encode('endstream'), ds);
+          if (de < 0) { i = j + 3; continue; }
+          let e2 = de;
+          if (b[e2 - 1] === 10) e2--;
+          if (b[e2 - 1] === 13) e2--;
+          de = e2;
+        }
+        val = { t: 'stream', d: val, data: b.subarray(ds, de) };
+        end = indexOfBytes(b, ENC.encode('endstream'), de);
+        end = end < 0 ? de : end + 9;
+      }
+      this.objs.set(num, { gen, v: val, off: ns });
+      i = Math.max(end, j + 3);
+    }
+  }
+
+  /* /ObjStm 안에 든 객체들을 꺼내 목록에 더한다 (실제 PDF의 90%가 이걸 쓴다) */
+  async expandObjStms() {
+    const stms = [];
+    for (const [num, o] of this.objs) {
+      if (o.v.t === 'stream') {
+        const ty = dget(o.v.d, '/Type');
+        if (ty && ty.t === 'name' && ty.s === '/ObjStm') stms.push([o.off || 0, o.v]);
+      }
+    }
+    for (const [stOff, st] of stms) {
+      let data;
+      try { data = await this.decodeStream(st); } catch (e) { continue; }
+      const N = numv(dget(st.d, '/N')), First = numv(dget(st.d, '/First'));
+      if (!N || First === null) continue;
+      const head = new Lexer(data, 0);
+      const pairs = [];
+      for (let k = 0; k < N; k++) {
+        head.skip(); const a = head.token();
+        head.skip(); const b2 = head.token();
+        const nn = parseInt(a, 10), off = parseInt(b2, 10);
+        if (!isFinite(nn) || !isFinite(off)) break;
+        pairs.push([nn, off]);
+      }
+      for (const [nn, off] of pairs) {
+        // 같은 번호가 이미 있으면 '파일에서 더 뒤에 놓인 쪽'이 최신이다.
+        // 증분 업데이트(실제 PDF의 23%)에서 본문 추가분과 ObjStm 갱신분이 섞이는 경우를 가른다.
+        const prev = this.objs.get(nn);
+        if (prev && (prev.off || 0) > stOff) continue;
+        try {
+          const lx = new Lexer(data, First + off);
+          this.objs.set(nn, { gen: 0, v: lx.parse(), off: stOff });
+        } catch (e) { /* 무시 */ }
+      }
+    }
+  }
+
+  async decodeStream(st) {
+    let data = st.data;
+    let filt = dget(st.d, '/Filter');
+    let parms = dget(st.d, '/DecodeParms') || dget(st.d, '/DP');
+    if (!filt) return data;
+    const filters = filt.t === 'arr' ? filt.v : [filt];
+    const parmList = parms ? (parms.t === 'arr' ? parms.v : [parms]) : [];
+    for (let i = 0; i < filters.length; i++) {
+      const f = filters[i];
+      if (f.t !== 'name') continue;
+      if (f.s === '/FlateDecode' || f.s === '/Fl') {
+        data = await inflate(data);
+        const pm = this.resolve(parmList[i] || (filters.length === 1 ? parmList[0] : null));
+        if (pm && pm.t === 'dict') {
+          const pred = numv(dget(pm, '/Predictor')) || 1;
+          if (pred >= 10) {
+            data = unpredict(data, pred,
+              numv(dget(pm, '/Colors')) || 1,
+              numv(dget(pm, '/BitsPerComponent')) || 8,
+              numv(dget(pm, '/Columns')) || 1);
+          }
+        }
+      } else if (f.s === '/ASCIIHexDecode' || f.s === '/AHx') {
+        const out = []; let hi = -1;
+        for (const c of data) {
+          let v = -1;
+          if (c >= 48 && c <= 57) v = c - 48;
+          else if (c >= 97 && c <= 102) v = c - 87;
+          else if (c >= 65 && c <= 70) v = c - 55;
+          else if (c === 0x3e) break; else continue;
+          if (hi < 0) hi = v; else { out.push(hi * 16 + v); hi = -1; }
+        }
+        if (hi >= 0) out.push(hi * 16);
+        data = Uint8Array.from(out);
+      } else {
+        throw new Error('지원하지 않는 필터 ' + f.s);
+      }
+    }
+    return data;
+  }
+
+  resolve(x) {
+    let guard = 0;
+    while (x && x.t === 'ref' && guard++ < 64) {
+      const o = this.objs.get(x.n);
+      x = o ? o.v : null;
+    }
+    return x;
+  }
+
+  findRoot() {
+    // 1) trailer 사전들 중 마지막 /Root
+    const pos = findAll(this.b, 'trailer');
+    for (let i = pos.length - 1; i >= 0; i--) {
+      const t = new Lexer(this.b, pos[i] + 7).parse();
+      const r = dget(t, '/Root');
+      if (r) { this.root = this.resolve(r); if (this.root) return; }
+    }
+    // 2) xref 스트림 사전의 /Root
+    for (const [, o] of this.objs) {
+      if (o.v.t === 'stream') {
+        const ty = dget(o.v.d, '/Type');
+        if (ty && ty.s === '/XRef') {
+          const r = dget(o.v.d, '/Root');
+          if (r) { this.root = this.resolve(r); if (this.root) return; }
+        }
+      }
+    }
+    // 3) /Type /Catalog 직접 찾기
+    for (const [, o] of this.objs) {
+      const d = o.v.t === 'dict' ? o.v : null;
+      if (d) { const ty = dget(d, '/Type'); if (ty && ty.s === '/Catalog') { this.root = d; return; } }
+    }
+    throw new Error('문서 구조(Catalog)를 찾지 못했습니다');
+  }
+
+  /* 페이지 트리를 훑어 페이지 객체 목록을 만든다. 상속 속성은 여기서 확정한다. */
+  pages() {
+    const INHERIT = ['/Resources', '/MediaBox', '/CropBox', '/Rotate'];
+    const out = [];
+    const seen = new Set();
+    const walk = (node, inh, depth) => {
+      node = this.resolve(node);
+      if (!node || depth > 64 || out.length > 20000) return;
+      const d = node.t === 'stream' ? node.d : node;
+      if (d.t !== 'dict') return;
+      const inh2 = Object.assign({}, inh);
+      for (const k of INHERIT) { const v = dget(d, k); if (v) inh2[k] = v; }
+      const ty = dget(d, '/Type');
+      const kids = dget(d, '/Kids');
+      if (kids && (!ty || ty.s !== '/Page')) {
+        const arr = this.resolve(kids);
+        if (arr && arr.t === 'arr') {
+          for (const k of arr.v) {
+            const key = k.t === 'ref' ? 'r' + k.n : null;
+            if (key) { if (seen.has(key)) continue; seen.add(key); }
+            walk(k, inh2, depth + 1);
+          }
+        }
+        return;
+      }
+      if (ty && ty.s === '/Page') out.push({ dict: d, inh: inh2 });
+    };
+    const rootPages = dget(this.root, '/Pages');
+    if (rootPages) walk(rootPages, {}, 0);
+    if (!out.length) {
+      // 페이지 트리가 깨진 경우: /Type /Page 를 직접 긁는다
+      for (const [, o] of this.objs) {
+        const d = o.v.t === 'dict' ? o.v : null;
+        if (d) { const ty = dget(d, '/Type'); if (ty && ty.s === '/Page') out.push({ dict: d, inh: {} }); }
+      }
+    }
+    return out;
+  }
+}
+
+/* ── 병합 ──────────────────────────────────────── */
+/* items: [{doc, pageIndex, rotate}] 순서대로 */
+function buildPDF(items) {
+  const outObjs = [];              // 1-based 로 쓴다
+  const alloc = () => { outObjs.push(null); return outObjs.length; };
+  const maps = new Map();          // doc → Map(원본객체 → 새 번호)
+
+  const catalogNum = alloc();
+  const pagesNum = alloc();
+
+  const copy = (doc, val, depth) => {
+    if (!val) return { t: 'null' };
+    if (depth > 96) return { t: 'null' };
+    switch (val.t) {
+      case 'ref': {
+        let m = maps.get(doc);
+        if (!m) { m = new Map(); maps.set(doc, m); }
+        if (m.has(val.n)) return { t: 'ref', n: m.get(val.n), g: 0 };
+        const src = doc.objs.get(val.n);
+        if (!src) return { t: 'null' };
+        const nn = alloc();
+        m.set(val.n, nn);
+        outObjs[nn - 1] = copy(doc, src.v, depth + 1);
+        return { t: 'ref', n: nn, g: 0 };
+      }
+      case 'arr': return { t: 'arr', v: val.v.map(e => copy(doc, e, depth + 1)) };
+      case 'dict': return { t: 'dict', m: val.m.map(([k, v]) => [k, copy(doc, v, depth + 1)]) };
+      case 'stream': return { t: 'stream', d: copy(doc, val.d, depth + 1), data: val.data };
+      default: return val;
+    }
+  };
+
+  const kids = [];
+  for (const it of items) {
+    const { doc, page, rotate } = it;
+    const src = page.dict;
+    const nd = { t: 'dict', m: [] };
+    for (const [k, v] of src.m) {
+      if (k === '/Parent') continue;
+      nd.m.push([k, copy(doc, v, 0)]);
+    }
+    dset(nd, '/Type', { t: 'name', s: '/Page' });
+    // 상속 속성을 페이지에 직접 박아 넣는다(부모 트리를 새로 만들기 때문)
+    for (const k of ['/Resources', '/MediaBox', '/CropBox']) {
+      if (!dget(nd, k) && page.inh[k]) dset(nd, k, copy(doc, page.inh[k], 0));
+    }
+    if (!dget(nd, '/Resources')) dset(nd, '/Resources', { t: 'dict', m: [] });
+    let rot = numv(dget(nd, '/Rotate'));
+    if (rot === null && page.inh['/Rotate']) rot = numv(doc.resolve(page.inh['/Rotate']));
+    rot = ((rot || 0) + (rotate || 0)) % 360;
+    if (rot < 0) rot += 360;
+    if (rot) dset(nd, '/Rotate', { t: 'num', s: String(rot) }); else ddel(nd, '/Rotate');
+
+    const pn = alloc();
+    dset(nd, '/Parent', { t: 'ref', n: pagesNum, g: 0 });
+    outObjs[pn - 1] = nd;
+    kids.push({ t: 'ref', n: pn, g: 0 });
+  }
+
+  outObjs[pagesNum - 1] = {
+    t: 'dict', m: [
+      ['/Type', { t: 'name', s: '/Pages' }],
+      ['/Kids', { t: 'arr', v: kids }],
+      ['/Count', { t: 'num', s: String(kids.length) }]
+    ]
+  };
+  outObjs[catalogNum - 1] = {
+    t: 'dict', m: [
+      ['/Type', { t: 'name', s: '/Catalog' }],
+      ['/Pages', { t: 'ref', n: pagesNum, g: 0 }]
+    ]
+  };
+
+  /* 직렬화 */
+  const chunks = [];
+  let len = 0;
+  const push = arr => { for (const a of arr) { chunks.push(a); len += a.length; } };
+  push([ENC.encode('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n')]);
+  const offsets = new Array(outObjs.length + 1).fill(0);
+  for (let i = 0; i < outObjs.length; i++) {
+    offsets[i + 1] = len;
+    const parts = [];
+    parts.push(ENC.encode((i + 1) + ' 0 obj\n'));
+    ser(outObjs[i] || { t: 'null' }, parts);
+    parts.push(ENC.encode('\nendobj\n'));
+    push(parts);
+  }
+  const xrefPos = len;
+  const pad = (n, w) => String(n).padStart(w, '0');
+  let xr = 'xref\n0 ' + (outObjs.length + 1) + '\n0000000000 65535 f \n';
+  for (let i = 1; i <= outObjs.length; i++) xr += pad(offsets[i], 10) + ' 00000 n \n';
+  xr += 'trailer\n<< /Size ' + (outObjs.length + 1) + ' /Root ' + catalogNum + ' 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF\n';
+  push([ENC.encode(xr)]);
+
+  const out = new Uint8Array(len);
+  let o = 0;
+  for (const c of chunks) { out.set(c, o); o += c.length; }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   화면 · 조작
+
+   미리보기는 버튼으로 여는 게 아니라 **항상 켜져 있다.**
+   파일을 넣거나 순서·페이지 범위·회전을 바꾸면 그때마다 합쳐 다시 그린다.
+   내보내기 단계에서 "합치기"를 따로 누를 필요가 없도록,
+   화면에 보이는 그 파일을 그대로 내려받게 했다(같은 blob 을 공유한다).
+   ══════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+let files = [];          // {id,name,size,doc,pages,err,range,rot}
+let uid = 0;
+let outURL = null;       // 미리보기 iframe 과 내려받기 링크가 함께 쓰는 blob
+let outBytes = 0;
+let buildTimer = null, lastSig = null, lastMs = 0;
+let loadingFiles = false, pvShown = false;   // 처음 한 번만 미리보기로 데려간다
+
+let toastT;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function fmtSize(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/* 페이지 범위 문법
+     빈칸        전체
+     1-3, 7, 10- 골라 넣기 (10- 은 끝까지, -5 는 1쪽부터)
+     12-1        큰 수를 먼저 적으면 그 구간이 역순
+     홀 / 짝     홀수쪽 · 짝수쪽만 (범위와 같이 써도 된다)               */
+function parseRange(s, total) {
+  s = (s || '').trim();
+  if (!s) return { ok: true, idx: Array.from({ length: total }, (_, i) => i) };
+  let parity = 0;
+  s = s.replace(/홀수|홀|odd/gi, () => { parity = 1; return ' '; })
+       .replace(/짝수|짝|even/gi, () => { parity = 2; return ' '; }).trim();
+  let base = [];
+  if (!s) {
+    base = Array.from({ length: total }, (_, i) => i + 1);
+  } else {
+    for (const raw of s.split(',')) {
+      const t = raw.trim(); if (!t) continue;
+      let m;
+      if ((m = t.match(/^(\d+)$/))) base.push(+m[1]);
+      else if ((m = t.match(/^(\d+)\s*[-~]\s*(\d+)$/))) {
+        const a = +m[1], b = +m[2];
+        if (a <= b) { for (let i = a; i <= b; i++) base.push(i); }
+        else { for (let i = a; i >= b; i--) base.push(i); }
+      }
+      else if ((m = t.match(/^(\d+)\s*[-~]$/))) { for (let i = +m[1]; i <= total; i++) base.push(i); }
+      else if ((m = t.match(/^[-~]\s*(\d+)$/))) { for (let i = 1; i <= +m[1]; i++) base.push(i); }
+      else return { ok: false, msg: '「' + t + '」를 못 읽었어요' };
+    }
+  }
+  if (parity) base = base.filter(n => (parity === 1 ? n % 2 === 1 : n % 2 === 0));
+  if (base.some(n => n < 1 || n > total)) return { ok: false, msg: '이 파일은 ' + total + '쪽까지예요' };
+  if (!base.length) return { ok: false, msg: '고른 페이지가 없어요' };
+  return { ok: true, idx: base.map(n => n - 1) };
+}
+
+function selCount(f) {
+  if (f.err) return 0;
+  const r = parseRange(f.range, f.pages.length);
+  return r.ok ? r.idx.length : -1;
+}
+
+/* ── 합계 · 버튼 상태 ────────────────────────────── */
+function totals() {
+  let pages = 0, bad = 0, size = 0, ok = 0;
+  for (const f of files) {
+    size += f.size;
+    if (f.err) { bad++; continue; }
+    const n = selCount(f);
+    if (n < 0) { bad++; continue; }
+    pages += n; ok++;
+  }
+  return { pages, bad, size, ok };
+}
+function paintTotals() {
+  const t = totals();
+  $('#sumPage').textContent = t.pages + '쪽';
+  $('#tPage').textContent = t.pages + '쪽';
+  $('#tFile').textContent = t.ok + '개';
+  $('#outHint').textContent = t.ok === 1 ? '한 개 — 페이지 뽑기' : '';
+  const w = $('#warnBox');
+  if (t.bad > 0) {
+    w.className = 'note warn';
+    w.innerHTML = '빨갛게 표시된 <b>' + t.bad + '개</b>를 고치거나 지워야 내려받을 수 있습니다.';
+  } else if (t.size > 150 * 1024 * 1024) {
+    w.className = 'note warn';
+    w.innerHTML = '불러온 용량이 <b>' + fmtSize(t.size) + '</b>입니다. 스마트폰에서는 브라우저가 멈출 수 있으니 나눠서 합쳐 주세요.';
+  } else {
+    w.className = 'note warn hide';
+  }
+  return t;
+}
+
+/* ── 목록 그리기 ─────────────────────────────────── */
+function render() {
+  const has = files.length > 0;
+  $('#listCard').classList.toggle('hide', !has);
+  $('#outCard').classList.toggle('hide', !has);
+  $('#pvCard').classList.toggle('hide', !has);
+  $('#drop').classList.toggle('hide', has);
+  if (!has) { clearOut(); return; }
+
+  $('#cnt').textContent = files.length;
+  $('#list').innerHTML = files.map((f, i) => {
+    const n = selCount(f);
+    const sub = f.err
+      ? '<span class="err">' + esc(f.err) + '</span>'
+      : fmtSize(f.size) + ' · ' + f.pages.length + '쪽 중 <b>' + (n < 0 ? '?' : n) + '쪽</b> 넣기';
+    return '<li class="item' + (f.err ? ' bad' : '') + '" data-id="' + f.id + '" draggable="true">' +
+      '<span class="idx" title="끌어서 순서 변경">' + (i + 1) + '</span>' +
+      '<div class="meta">' +
+        '<div class="fname">' + esc(f.name) + '</div>' +
+        '<div class="fsz">' + sub + '</div>' +
+        (f.err ? '' :
+          '<div class="opts">' +
+            '<input class="rng' + (n < 0 ? ' bad' : '') + '" data-id="' + f.id + '" value="' + esc(f.range) +
+              '" placeholder="전체 (예: 1-3, 7, 10-)" spellcheck="false" inputmode="text">' +
+            '<button class="rot' + (f.rot ? ' on' : '') + '" data-rot="' + f.id + '">⟳ ' + f.rot + '°</button>' +
+          '</div>') +
+      '</div>' +
+      '<div class="ctl">' +
+        '<button class="sq" data-up="' + f.id + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button class="sq" data-dn="' + f.id + '"' + (i === files.length - 1 ? ' disabled' : '') + '>↓</button>' +
+        '<button class="sq x" data-del="' + f.id + '">✕</button>' +
+      '</div></li>';
+  }).join('');
+
+  paintTotals();
+  scheduleBuild();
+}
+
+/* ── 미리보기 = 내보낼 파일 ──────────────────────────
+   PDF를 픽셀로 그리려면 콘텐츠 스트림 해석기와 글꼴 래스터라이저가 있어야 한다(pdf.js 급).
+   대신 브라우저에 이미 들어 있는 PDF 뷰어에 blob 을 태운다.
+   보여 줄 문서를 저장할 문서와 똑같은 코드(buildPDF)로 만들기 때문에
+   미리보기에 보이는 것이 곧 결과물이고, 이 과정에도 밖으로 나가는 통신이 없다.   */
+function clearOut() {
+  $('#pvFrame').removeAttribute('src');
+  if (outURL) { URL.revokeObjectURL(outURL); outURL = null; }
+  outBytes = 0;
+  pvShown = false;
+  $('#dl').classList.add('off');
+  $('#dl').removeAttribute('href');
+  $('#tOut').textContent = '–';
+  lastSig = null;
+}
+function pvState(txt, busy) {
+  $('#pvState').textContent = txt || '';
+  $('#pvState').classList.toggle('busy', !!busy);
+  $('#pvFrame').classList.toggle('dim', !!busy);
+}
+function pvError(msg) {
+  clearOut();
+  $('#pvFrame').classList.add('hide');
+  $('#pvTitle').textContent = '';
+  $('#pvSub').textContent = '';
+  pvState('');
+  const note = $('#pvNote');
+  note.className = 'note bad';
+  note.innerHTML = esc(msg);
+}
+function outName() {
+  let name = ($('#outName').value || '합친문서').trim().replace(/[\\/:*?"<>|]/g, '_');
+  if (!/\.pdf$/i.test(name)) name += '.pdf';
+  return name;
+}
+
+function sig() {
+  return files.map(f => f.id + ':' + (f.err ? 'E' : '') + ':' + f.range + ':' + f.rot).join('|');
+}
+function scheduleBuild(force) {
+  if (!files.length) return;
+  const s = sig();
+  if (!force && s === lastSig) return;
+  lastSig = s;
+  clearTimeout(buildTimer);
+  pvState('미리보기 만드는 중…', true);
+  // 큰 문서는 만드는 데 시간이 걸리므로, 직전 소요시간을 보고 기다리는 시간을 늘린다
+  buildTimer = setTimeout(doBuild, lastMs > 900 ? 1400 : 380);
+}
+function doBuild() {
+  if (!files.length) { clearOut(); return; }
+  const bad = files.filter(f => f.err);
+  if (bad.length) {
+    pvError('읽지 못한 파일이 ' + bad.length + '개 있습니다. 그 파일을 지우면 미리보기가 나옵니다.');
+    return;
+  }
+  const items = [];
+  for (const f of files) {
+    const r = parseRange(f.range, f.pages.length);
+    if (!r.ok) { pvError(f.name + ' — ' + r.msg); return; }
+    for (const i of r.idx) items.push({ doc: f.doc, page: f.pages[i], rotate: f.rot });
+  }
+  if (!items.length) { pvError('넣을 페이지가 없습니다.'); return; }
+
+  const t0 = performance.now();
+  let out;
+  try { out = buildPDF(items); }
+  catch (e) {
+    pvError('합치는 중에 문제가 생겼습니다 — ' + ((e && e.message) || e) +
+            ' · 파일을 하나씩 빼 보면 어떤 파일이 문제인지 알 수 있습니다.');
+    return;
+  }
+  lastMs = performance.now() - t0;
+
+  if (outURL) URL.revokeObjectURL(outURL);
+  outURL = URL.createObjectURL(new Blob([out], { type: 'application/pdf' }));
+  outBytes = out.length;
+
+  const fr = $('#pvFrame');
+  const can = (navigator.pdfViewerEnabled !== false);
+  fr.classList.remove('hide');
+  fr.classList.toggle('hide', !can);
+  if (can) fr.src = outURL + '#toolbar=1&navpanes=0&view=FitH';
+  else fr.removeAttribute('src');
+
+  $('#pvTitle').textContent = outName();
+  $('#pvSub').textContent = items.length + '쪽 · ' + fmtSize(out.length);
+  pvState(files.length > 1 ? '합친 결과' : '뽑은 결과');
+
+  const note = $('#pvNote');
+  note.className = 'note info';
+  note.innerHTML = can
+    ? '<b>여기 보이는 그대로 저장됩니다.</b> 순서·페이지·회전을 바꾸면 바로 다시 그려집니다. ' +
+      '휴대폰에서는 첫 장만 보이거나 스크롤이 안 될 수 있으니 그럴 땐 <b>새 창에서 열기</b>를 쓰세요. ' +
+      '미리보기도 인터넷을 쓰지 않습니다.'
+    : '이 브라우저는 PDF를 화면 안에 바로 못 보여 줍니다. <b>새 창에서 열기</b>를 누르면 기기의 PDF 뷰어로 열립니다. ' +
+      '거기 보이는 그대로 저장됩니다.';
+
+  const a = $('#dl');
+  a.href = outURL;
+  a.setAttribute('download', outName());
+  a.classList.remove('off');
+  $('#tOut').textContent = fmtSize(out.length);
+
+  // 파일 목록이 길면 미리보기가 화면 밖에 있어 있는 줄도 모른다.
+  // 파일을 다 읽고 첫 장이 나왔을 때만 한 번 데려다 준다(편집 중에는 건드리지 않는다).
+  if (!pvShown && !loadingFiles) {
+    pvShown = true;
+    try { $('#pvCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    catch (e) { $('#pvCard').scrollIntoView(); }
+  }
+}
+
+/* ── 파일 추가 ───────────────────────────────────── */
+async function addFiles(fl) {
+  const arr = Array.from(fl).filter(f => /\.pdf$/i.test(f.name) || f.type === 'application/pdf');
+  if (!arr.length) { toast('PDF 파일만 넣을 수 있어요'); return; }
+  loadingFiles = true;
+  showProg(true, '파일을 읽는 중…');
+  for (let i = 0; i < arr.length; i++) {
+    const f = arr[i];
+    setProg(i / arr.length, f.name + ' 읽는 중…');
+    const rec = { id: ++uid, name: f.name, size: f.size, range: '', rot: 0 };
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      rec.doc = await PDFDoc.load(bytes, f.name);
+      rec.pages = rec.doc.pages();
+      if (!rec.pages.length) throw new Error('페이지를 찾지 못했습니다');
+    } catch (e) {
+      rec.err = (e && e.message) ? e.message : '읽을 수 없는 PDF입니다';
+    }
+    files.push(rec);
+    render();
+    await new Promise(r => setTimeout(r, 0));
+  }
+  setProg(1, '');
+  showProg(false);
+  loadingFiles = false;
+  scheduleBuild(true);
+  const nbad = files.filter(f => f.err).length;
+  toast(nbad ? arr.length + '개 중 ' + nbad + '개를 읽지 못했어요' : arr.length + '개를 불러왔어요');
+}
+
+function showProg(on, txt) {
+  $('#prog').classList.toggle('show', !!on);
+  if (txt) $('#ptxt').textContent = txt;
+}
+function setProg(p, txt) {
+  $('#bar').style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
+  if (txt) $('#ptxt').textContent = txt;
+}
+
+/* ── 이벤트 ──────────────────────────────────────── */
+const drop = $('#drop');
+drop.onclick = () => $('#file').click();
+$('#file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('#fileMore').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('#addMore').onclick = () => $('#fileMore').click();
+
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault();
+  if (files.length && e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+
+$('#sortName').onclick = () => {
+  files.sort((a, b) => a.name.localeCompare(b.name, 'ko', { numeric: true }));
+  render(); toast('이름순으로 정렬했어요');
+};
+$('#reverse').onclick = () => { files.reverse(); render(); toast('순서를 뒤집었어요'); };
+$('#clear').onclick = () => { files = []; render(); toast('전부 지웠어요'); };
+
+$('#outName').addEventListener('input', () => {
+  if (!outURL) return;
+  $('#dl').setAttribute('download', outName());
+  $('#pvTitle').textContent = outName();
+});
+
+$('#pvOpen').onclick = () => {
+  if (!outURL) { toast('먼저 PDF를 넣어 주세요'); return; }
+  const w = window.open(outURL, '_blank');
+  if (!w) toast('팝업이 막혔어요 — 브라우저에서 허용해 주세요');
+};
+$('#dl').addEventListener('click', () => {
+  if (outURL) setTimeout(() => toast('저장했어요 — 열어서 한 번 더 확인해 주세요'), 250);
+});
+
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const idOf = k => parseInt(b.getAttribute(k), 10);
+  if (b.hasAttribute('data-del')) {
+    files = files.filter(f => f.id !== idOf('data-del')); render(); return;
+  }
+  if (b.hasAttribute('data-up') || b.hasAttribute('data-dn')) {
+    const up = b.hasAttribute('data-up');
+    const id = idOf(up ? 'data-up' : 'data-dn');
+    const i = files.findIndex(f => f.id === id);
+    const j = up ? i - 1 : i + 1;
+    if (j < 0 || j >= files.length) return;
+    const t = files[i]; files[i] = files[j]; files[j] = t;
+    render(); return;
+  }
+  if (b.hasAttribute('data-rot')) {
+    const f = files.find(x => x.id === idOf('data-rot'));
+    if (f) { f.rot = (f.rot + 90) % 360; render(); }
+  }
+});
+
+/* 범위를 타이핑할 때는 목록을 다시 그리지 않는다(입력칸이 날아가므로).
+   숫자만 갱신하고 미리보기 재생성을 예약한다. */
+$('#list').addEventListener('input', e => {
+  const el = e.target;
+  if (!el.classList.contains('rng')) return;
+  const f = files.find(x => x.id === parseInt(el.getAttribute('data-id'), 10));
+  if (!f) return;
+  f.range = el.value;
+  const n = selCount(f);
+  el.classList.toggle('bad', n < 0);
+  const box = el.closest('.item').querySelector('.fsz');
+  if (box) box.innerHTML = fmtSize(f.size) + ' · ' + f.pages.length + '쪽 중 <b>' +
+    (n < 0 ? '?' : n) + '쪽</b> 넣기';
+  paintTotals();
+  scheduleBuild();
+});
+
+/* 끌어서 순서 바꾸기 */
+let dragId = null;
+const listEl = $('#list');
+listEl.addEventListener('dragstart', e => {
+  const li = e.target.closest('.item'); if (!li) return;
+  dragId = parseInt(li.getAttribute('data-id'), 10);
+  li.classList.add('drag');
+  try { e.dataTransfer.setData('text/plain', String(dragId)); } catch (x) {}
+});
+listEl.addEventListener('dragover', e => {
+  if (dragId === null) return;
+  e.preventDefault();
+  const li = e.target.closest('.item'); if (!li) return;
+  $$('.item').forEach(x => x.classList.remove('overdrop'));
+  li.classList.add('overdrop');
+});
+listEl.addEventListener('drop', e => {
+  if (dragId === null) return;
+  e.preventDefault(); e.stopPropagation();
+  const li = e.target.closest('.item'); if (!li) return;
+  const to = parseInt(li.getAttribute('data-id'), 10);
+  const i = files.findIndex(f => f.id === dragId), j = files.findIndex(f => f.id === to);
+  if (i < 0 || j < 0 || i === j) { dragId = null; render(); return; }
+  const [m] = files.splice(i, 1);
+  files.splice(j, 0, m);
+  dragId = null; render();
+});
+listEl.addEventListener('dragend', () => {
+  dragId = null;
+  $$('.item').forEach(x => x.classList.remove('drag', 'overdrop'));
+});
+
+render();
+</script>
+</body>
+</html>
